@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Taboo — Fun Deck (Ultra)</title>
+  <style>
+    :root { --bg:#0e1116; --fg:#f5f7fb; --muted:#b7bdc9; --card:#131921; --chip:#1b2330; --accent:#7aa2ff; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+           background:var(--bg); color:var(--fg); min-height:100vh;
+           display:grid; grid-template-rows:auto 1fr auto; }
+    header { padding:10px 14px; text-align:center; font-weight:800; font-size:18px; }
+    .hint { color:var(--muted); font-size:12px; text-align:center; padding:0 16px; margin-top:-6px; }
+    main { padding:14px; display:grid; place-items:center; }
+    .card { width:min(720px,95vw); background:var(--card); border-radius:18px; padding:18px;
+            display:grid; gap:12px; justify-items:center; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+    .label { text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--muted); }
+    .target { font-size: clamp(28px, 7vw, 48px); font-weight:900; text-align:center; line-height:1.05; }
+    .forbidden { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+    .forbidden span { background:var(--chip); padding:10px 12px; border-radius:999px; font-size: clamp(14px,3.8vw,18px); }
+    .controls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+    button { background:var(--accent); color:#0b1020; font-weight:800; border:none; border-radius:12px; padding:14px 18px; font-size:16px; }
+    button.secondary { background:#243049; color:var(--fg); }
+    footer { padding:10px; text-align:center; color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>🎉 Taboo — General Fun Deck</header>
+  <div class="hint">If buttons don’t respond, open this link directly in Safari/Chrome (not an in-app preview).</div>
+  <main>
+    <div class="card" id="tapCard" role="button" tabindex="0" aria-live="polite" aria-atomic="true">
+      <div class="label">Target word</div>
+      <div id="target" class="target">Loading…</div>
+      <div class="label">Forbidden words</div>
+      <div id="forbidden" class="forbidden"></div>
+      <div class="controls">
+        <button id="nextBtn" type="button">Next Card</button>
+        <button id="reshuffleBtn" class="secondary" type="button">Reshuffle</button>
+      </div>
+    </div>
+  </main>
+  <footer>Tap the card or use the buttons. No repeats until deck resets.</footer>
+
+  <script>
+    /* 100-card general entertainment deck */
+    const DECK = [
+      {"target":"Pizza","forbidden":["Cheese","Slice","Toppings","Pepperoni","Italian"]},
+      {"target":"Airplane","forbidden":["Fly","Pilot","Airport","Wings","Jet"]},
+      {"target":"Concert","forbidden":["Music","Live","Stage","Band","Crowd"]},
+      {"target":"Selfie","forbidden":["Photo","Front camera","Smile","Phone","Instagram"]},
+      {"target":"Popcorn","forbidden":["Movie","Bucket","Butter","Snack","Kernel"]},
+      {"target":"Camping","forbidden":["Tent","Fire","Outdoors","Sleeping bag","Marshmallow"]},
+      {"target":"Coffee","forbidden":["Caffeine","Latte","Beans","Brew","Cup"]},
+      {"target":"Chocolate","forbidden":["Sweet","Candy","Bar","Dark","Dessert"]},
+      {"target":"Emoji","forbidden":["Face","Text","Message","Icon","Smiley"]},
+      {"target":"Beach","forbidden":["Sand","Waves","Sun","Swim","Towel"]},
+      {"target":"Roller Coaster","forbidden":["Ride","Theme park","Loop","Scream","Tracks"]},
+      {"target":"Birthday","forbidden":["Cake","Candles","Party","Presents","Wish"]},
+      {"target":"Karaoke","forbidden":["Sing","Mic","Lyrics","Song","Bar"]},
+      {"target":"Picnic","forbidden":["Basket","Blanket","Park","Food","Ants"]},
+      {"target":"Sushi","forbidden":["Rice","Seaweed","Raw","Fish","Roll"]},
+      {"target":"Meditation","forbidden":["Breathe","Calm","Mindfulness","Sit","Relax"]},
+      {"target":"Hiking","forbidden":["Trail","Boots","Backpack","Mountain","Walk"]},
+      {"target":"Sneakers","forbidden":["Shoes","Laces","Run","Gym","Trainers"]},
+      {"target":"Podcast","forbidden":["Listen","Episode","Audio","Host","Stream"]},
+      {"target":"Thunderstorm","forbidden":["Lightning","Rain","Clouds","Boom","Weather"]},
+      {"target":"Board Game","forbidden":["Pieces","Dice","Cards","Play","Table"]},
+      {"target":"Yoga","forbidden":["Stretch","Pose","Mat","Balance","Downward dog"]},
+      {"target":"Avocado","forbidden":["Toast","Green","Guacamole","Pit","Fruit"]},
+      {"target":"Robot","forbidden":["Machine","AI","Metal","Program","Automation"]},
+      {"target":"Bicycle","forbidden":["Pedal","Wheels","Ride","Handlebars","Helmet"]},
+      {"target":"BBQ","forbidden":["Grill","Meat","Sausage","Smoke","Barbecue"]},
+      {"target":"Fireworks","forbidden":["New Year","Explode","Sky","Bang","Colour"]},
+      {"target":"Ice Cream","forbidden":["Cold","Scoop","Cone","Dessert","Flavor"]},
+      {"target":"Sunset","forbidden":["Evening","Sky","Orange","Horizon","Sun"]},
+      {"target":"Library","forbidden":["Books","Read","Borrow","Quiet","Shelves"]},
+      {"target":"Detective","forbidden":["Clues","Mystery","Solve","Investigation","Case"]},
+      {"target":"Spa","forbidden":["Massage","Relax","Steam","Sauna","Facial"]},
+      {"target":"Guitar","forbidden":["Strings","Music","Play","Pick","Acoustic"]},
+      {"target":"Netflix","forbidden":["Stream","Show","Movie","Binge","Watch"]},
+      {"target":"Festival","forbidden":["Music","Crowd","Food","Weekend","Stage"]},
+      {"target":"Soccer","forbidden":["Goal","Kick","Ball","FIFA","Player"]},
+      {"target":"Passport","forbidden":["Travel","Airport","Stamp","Border","Visa"]},
+      {"target":"Lighthouse","forbidden":["Beacon","Coast","Light","Ship","Harbour"]},
+      {"target":"Taco","forbidden":["Shell","Salsa","Mexican","Guac","Filling"]},
+      {"target":"Binge","forbidden":["Watch","Series","Episodes","Marathon","Streaming"]},
+      {"target":"Skyscraper","forbidden":["Tall","City","Windows","Elevator","Building"]},
+      {"target":"Mascara","forbidden":["Eyelashes","Makeup","Brush","Cosmetics","Eyes"]},
+      {"target":"Road Trip","forbidden":["Drive","Highway","Map","Car","Stops"]},
+      {"target":"Ballet","forbidden":["Dance","Toe","Tutu","Stage","Choreography"]},
+      {"target":"Cocktail","forbidden":["Drink","Shaker","Ice","Bar","Alcohol"]},
+      {"target":"Campfire","forbidden":["Marshmallow","Smoke","Stories","Wood","Flames"]},
+      {"target":"Umbrella","forbidden":["Rain","Wet","Open","Handle","Weather"]},
+      {"target":"Puzzle","forbidden":["Pieces","Fit","Jigsaw","Picture","Complete"]},
+      {"target":"Treadmill","forbidden":["Run","Gym","Exercise","Belt","Machine"]},
+      {"target":"Volcano","forbidden":["Lava","Eruption","Ash","Magma","Crater"]},
+      {"target":"Fairy","forbidden":["Wings","Magic","Dust","Tiny","Forest"]},
+      {"target":"Whale","forbidden":["Ocean","Largest","Mammal","Blowhole","Pod"]},
+      {"target":"Comet","forbidden":["Tail","Orbit","Ice","Space","Halley"]},
+      {"target":"Tennis","forbidden":["Racket","Serve","Court","Net","Wimbledon"]},
+      {"target":"Skateboard","forbidden":["Wheels","Deck","Trick","Ride","Helmet"]},
+      {"target":"Origami","forbidden":["Paper","Fold","Crane","Japan","Shape"]},
+      {"target":"Sunflower","forbidden":["Yellow","Seeds","Garden","Tall","Plant"]},
+      {"target":"Mermaid","forbidden":["Tail","Sea","Myth","Siren","Underwater"]},
+      {"target":"Castle","forbidden":["King","Queen","Medieval","Moat","Knight"]},
+      {"target":"Firefighter","forbidden":["Flames","Hose","Truck","Rescue","Helmet"]},
+      {"target":"Wizard","forbidden":["Magic","Wand","Spell","Sorcerer","Robe"]},
+      {"target":"Vampire","forbidden":["Blood","Fangs","Night","Bat","Dracula"]},
+      {"target":"Cookie","forbidden":["Bake","Chocolate chips","Oven","Sweet","Dough"]},
+      {"target":"Roller Skates","forbidden":["Wheels","Rink","Glide","Inline","Balance"]},
+      {"target":"Bowling","forbidden":["Pins","Strike","Ball","Lane","Spare"]},
+      {"target":"Spacewalk","forbidden":["Astronaut","Suit","Orbit","Outside","NASA"]},
+      {"target":"Treasure","forbidden":["Chest","Gold","Map","Pirate","X marks"]},
+      {"target":"Parachute","forbidden":["Skydive","Jump","Airplane","Canopy","Land"]},
+      {"target":"Lantern","forbidden":["Light","Camp","Glow","Candle","Portable"]},
+      {"target":"Submarine","forbidden":["Underwater","Periscope","Navy","Dive","Torpedo"]},
+      {"target":"Waterfall","forbidden":["Cascade","River","Drop","Cliff","Spray"]},
+      {"target":"Microwave","forbidden":["Heat","Kitchen","Oven","Waves","Quick"]},
+      {"target":"Trophy","forbidden":["Win","Gold","Award","Cup","Champion"]},
+      {"target":"Backpack","forbidden":["Straps","School","Carry","Bag","Zipper"]},
+      {"target":"Penguin","forbidden":["Antarctica","Black","White","Waddle","Ice"]},
+      {"target":"Dolphin","forbidden":["Mammal","Ocean","Smart","Flipper","Pod"]},
+      {"target":"Sunglasses","forbidden":["Shades","Sun","Lenses","Eyes","UV"]},
+      {"target":"Jellyfish","forbidden":["Tentacles","Sting","Ocean","Transparent","Float"]},
+      {"target":"Marathon","forbidden":["Run","26.2","Race","Finish","Training"]},
+      {"target":"Alarm Clock","forbidden":["Wake","Snooze","Ring","Morning","Time"]},
+      {"target":"Headphones","forbidden":["Music","Ear","Listen","Noise","Audio"]},
+      {"target":"Passport Stamp","forbidden":["Travel","Country","Border","Customs","Entry"]},
+      {"target":"Sneezing","forbidden":["Allergy","Tissue","Cold","Achoo","Nose"]},
+      {"target":"Toast","forbidden":["Bread","Crisp","Butter","Breakfast","Jam"]},
+      {"target":"Robot Vacuum","forbidden":["Clean","Floor","Roomba","Home","Automatic"]},
+      {"target":"Camp Chair","forbidden":["Fold","Seat","Portable","Outdoor","Cupholder"]},
+      {"target":"Iceberg","forbidden":["Float","Cold","Arctic","Tip","Glacier"]},
+      {"target":"Password","forbidden":["Login","Secret","Characters","Account","Security"]},
+      {"target":"Meteor Shower","forbidden":["Shooting stars","Night","Sky","Annual","Perseids"]},
+      {"target":"Hot Sauce","forbidden":["Spicy","Chili","Bottle","Heat","Tabasco"]},
+      {"target":"Pancakes","forbidden":["Flour","Syrup","Breakfast","Stack","Flip"]},
+      {"target":"Coconut","forbidden":["Tropical","Brown","Water","Milk","Hairy"]},
+      {"target":"Drone","forbidden":["Fly","Remote","Camera","Quadcopter","Aerial"]},
+      {"target":"Tattoo","forbidden":["Ink","Skin","Artist","Needle","Design"]},
+      {"target":"Sunscreen","forbidden":["SPF","Sun","Lotion","Burn","UV"]},
+      {"target":"Keychain","forbidden":["Ring","Keys","Trinket","Carry","Metal"]},
+      {"target":"Pineapple","forbidden":["Fruit","Tropical","Spiky","Yellow","Sweet"]},
+      {"target":"Bubble Tea","forbidden":["Tapioca","Pearls","Drink","Milk tea","Straw"]},
+      {"target":"Snowman","forbidden":["Winter","Carrot","Frosty","Snowballs","Cold"]},
+      {"target":"Fireplace","forbidden":["Wood","Warm","Chimney","Mantel","Winter"]},
+      {"target":"Comedian","forbidden":["Jokes","Stand-up","Laugh","Stage","Funny"]},
+      {"target":"Burrito","forbidden":["Wrap","Rice","Beans","Mexican","Foil"]},
+      {"target":"Sundae","forbidden":["Ice cream","Toppings","Chocolate","Cherry","Dessert"]},
+      {"target":"Hammock","forbidden":["Swing","Trees","Nap","Fabric","Relax"]},
+      {"target":"Suitcase","forbidden":["Luggage","Travel","Pack","Handle","Airport"]},
+      {"target":"Arcade","forbidden":["Games","Tokens","Claw","Pinball","Tickets"]},
+      {"target":"Slippers","forbidden":["Feet","House","Warm","Comfy","Shoes"]},
+      {"target":"Confetti","forbidden":["Party","Throw","Colourful","Paper","Celebrate"]},
+      {"target":"Garden Hose","forbidden":["Water","Spray","Nozzle","Yard","Pipe"]},
+      {"target":"Scooter","forbidden":["Kick","Handlebars","Wheels","Ride","Electric"]},
+      {"target":"Lemonade","forbidden":["Drink","Sour","Sweet","Summer","Ice"]}
+    ];
+
+    /* Shuffle + cycle without repeats */
+    let order = [], pos = -1;
+    function reshuffle() {
+      order = [...Array(DECK.length).keys()];
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      pos = -1;
+    }
+    function nextCard() {
+      pos++;
+      if (pos >= order.length) { reshuffle(); pos = 0; }
+      render(DECK[order[pos]]);
+    }
+    function render(card) {
+      document.getElementById("target").textContent = card.target;
+      const f = document.getElementById("forbidden");
+      f.innerHTML = "";
+      for (let i = 0; i < Math.min(5, card.forbidden.length); i++) {
+        const span = document.createElement("span");
+        span.textContent = card.forbidden[i];
+        f.appendChild(span);
+      }
+    }
+    /* Robust tap handlers for iOS/Android */
+    function bindTap(el, handler) {
+      const h = e => { e.preventDefault && e.preventDefault(); handler(e); };
+      el.addEventListener("click", h, {passive:false});
+      el.addEventListener("touchend", h, {passive:false});
+      el.addEventListener("pointerup", h, {passive:false});
+      el.addEventListener("keyup", e => { if (e.key === "Enter" || e.key === " ") handler(e); });
+    }
+    bindTap(document.getElementById("nextBtn"), nextCard);
+    bindTap(document.getElementById("reshuffleBtn"), () => { reshuffle(); nextCard(); });
+    bindTap(document.getElementById("tapCard"), e => {
+      if (e.target.tagName.toLowerCase() === "button") return;
+      nextCard();
+    });
+
+    /* Init */
+    reshuffle();
+    nextCard();
+  </script>
+</body>
+</html>
